@@ -1,0 +1,1759 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+  <title>Surgical & GIT Emergency Decision Support</title>
+  <meta name="description" content="Interactive clinical decision-support tool for GIT and urological surgical emergencies with diagnostic lab tables, bedside resuscitation, and AMBOSS-style triage algorithms." />
+  <meta property="og:title" content="Surgical & GIT Emergency Decision Support" />
+  <meta property="og:description" content="Interactive clinical decision-support tool for GIT and urological surgical emergencies with diagnostic lab tables, bedside resuscitation, and AMBOSS-style triage algorithms." />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <!-- Tailwind CSS CDN with dark mode configured via class -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'Inter', 'Helvetica', 'Arial', 'sans-serif'],
+            mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace']
+          },
+          colors: {
+            notion: {
+              bg: '#ffffff',
+              darkBg: '#0f172a',
+              sidebar: '#f8fafc',
+              darkSidebar: '#090d16',
+              card: '#ffffff',
+              darkCard: '#131c31',
+              border: '#e2e8f0',
+              darkBorder: '#1e293b',
+              muted: '#64748b',
+              darkMuted: '#94a3b8'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Clean Notion & Cloud layout enhancements */
+    html {
+      scroll-behavior: smooth;
+    }
+    /* Custom scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.4);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(100, 116, 139, 0.6);
+    }
+    .dark ::-webkit-scrollbar-thumb {
+      background: rgba(71, 85, 105, 0.5);
+    }
+    .dark ::-webkit-scrollbar-thumb:hover {
+      background: rgba(100, 116, 139, 0.8);
+    }
+
+    /* Notion-like subtle callout left border */
+    .notion-callout {
+      position: relative;
+    }
+    .notion-callout::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 3.5px;
+      border-top-left-radius: 0.5rem;
+      border-bottom-left-radius: 0.5rem;
+    }
+    .notion-callout-blue::before { background-color: #3b82f6; }
+    .notion-callout-amber::before { background-color: #f59e0b; }
+    .notion-callout-rose::before { background-color: #f43f5e; }
+    .notion-callout-emerald::before { background-color: #10b981; }
+    .notion-callout-purple::before { background-color: #a855f7; }
+
+    @media print {
+      .no-print { display: none !important; }
+      body { background: white !important; color: black !important; }
+      .sidebar { display: none !important; }
+      .main-content { margin-left: 0 !important; width: 100% !important; max-width: 100% !important; }
+    }
+  </style>
+</head>
+<body class="bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-100 min-h-screen font-sans antialiased transition-colors duration-150">
+
+  <!-- ========================================================================= -->
+  <!-- MOBILE TOP BAR (Phone Header) -->
+  <!-- ========================================================================= -->
+  <header class="lg:hidden sticky top-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 py-2.5 flex items-center justify-between no-print shadow-xs">
+    <div class="flex items-center gap-2.5 min-w-0">
+      <!-- Drawer Toggle Button -->
+      <button id="btn-mobile-menu" class="p-2 -ml-1 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 focus:outline-hidden" aria-label="Open emergency conditions menu">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
+
+      <!-- Active Condition Title Picker -->
+      <button id="btn-mobile-picker" class="flex items-center gap-1.5 text-left truncate py-1 px-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+        <span id="mobile-condition-icon" class="text-base shrink-0">🩺</span>
+        <span id="mobile-condition-title" class="font-bold text-sm text-slate-900 dark:text-white truncate">
+          Acute Appendicitis
+        </span>
+        <svg class="w-3.5 h-3.5 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Mobile Quick Actions -->
+    <div class="flex items-center gap-1 shrink-0">
+      <button id="btn-mobile-search" class="p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Search">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+        </svg>
+      </button>
+
+      <button id="btn-mobile-theme" class="p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+        <svg class="w-4 h-4 hidden dark:block text-amber-400" fill="currentColor" viewBox="0 0 20 20">
+          <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path>
+        </svg>
+        <svg class="w-4 h-4 block dark:hidden text-amber-500" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd"></path>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- ========================================================================= -->
+  <!-- MAIN APP CONTAINER (Sidebar + Document Canvas) -->
+  <!-- ========================================================================= -->
+  <div class="flex min-h-screen">
+
+    <!-- BACKDROP FOR MOBILE DRAWER -->
+    <div id="mobile-backdrop" class="fixed inset-0 z-40 bg-slate-950/60 backdrop-blur-xs hidden lg:hidden transition-opacity"></div>
+
+    <!-- SIDEBAR: Clean Notion/Cloud Directory -->
+    <aside id="app-sidebar" class="fixed inset-y-0 left-0 z-50 w-72 sm:w-80 bg-slate-50 dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col transition-transform duration-200 ease-in-out -translate-x-full lg:translate-x-0 lg:static shrink-0 no-print">
+      
+      <!-- Sidebar Header -->
+      <div class="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-blue-600 dark:bg-blue-500 text-white flex items-center justify-center font-bold shadow-xs">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+          </div>
+          <div>
+            <div class="text-xs font-bold tracking-tight text-slate-900 dark:text-white uppercase flex items-center gap-1.5">
+              <span>Surgical CDS</span>
+              <span class="px-1.5 py-0.2 rounded bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-300 text-[10px] font-semibold">
+                v2.5
+              </span>
+            </div>
+            <p class="text-[11px] text-slate-500 dark:text-slate-400">Decision Support System</p>
+          </div>
+        </div>
+
+        <!-- Close Drawer on Mobile -->
+        <button id="btn-close-sidebar" class="lg:hidden p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Quick Search Input in Sidebar -->
+      <div class="p-3 border-b border-slate-200 dark:border-slate-800/80">
+        <div class="relative">
+          <svg class="w-4 h-4 absolute left-2.5 top-2.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+          </svg>
+          <input
+            id="sidebar-search"
+            type="text"
+            placeholder="Search conditions, labs..."
+            class="w-full pl-8 pr-7 py-1.5 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-hidden focus:ring-1 focus:ring-blue-500 transition-all"
+          />
+          <button id="btn-clear-sidebar-search" class="absolute right-2 top-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hidden">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Category Pills in Sidebar -->
+        <div id="sidebar-categories" class="flex gap-1 overflow-x-auto pt-2 pb-0.5 scrollbar-none text-[11px]">
+          <button data-cat="All" class="cat-chip px-2 py-0.5 rounded font-medium whitespace-nowrap bg-blue-600 text-white cursor-pointer transition-colors">
+            All
+          </button>
+          <button data-cat="Pancreas & Upper GIT" class="cat-chip px-2 py-0.5 rounded font-medium whitespace-nowrap bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 cursor-pointer transition-colors">
+            Upper GIT
+          </button>
+          <button data-cat="Hepatobiliary" class="cat-chip px-2 py-0.5 rounded font-medium whitespace-nowrap bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 cursor-pointer transition-colors">
+            Hepato
+          </button>
+          <button data-cat="Lower GIT / Appendix" class="cat-chip px-2 py-0.5 rounded font-medium whitespace-nowrap bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 cursor-pointer transition-colors">
+            Lower GIT
+          </button>
+          <button data-cat="Urology & Trauma" class="cat-chip px-2 py-0.5 rounded font-medium whitespace-nowrap bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 cursor-pointer transition-colors">
+            Urology
+          </button>
+        </div>
+      </div>
+
+      <!-- Navigation Tree / Conditions List in Sidebar -->
+      <nav id="sidebar-conditions-nav" class="flex-1 overflow-y-auto p-2 space-y-1">
+        <!-- Rendered dynamically -->
+      </nav>
+
+      <!-- Sidebar Footer Tools -->
+      <div class="p-3 border-t border-slate-200 dark:border-slate-800 space-y-2 bg-slate-100/60 dark:bg-slate-900/40">
+        <!-- Alvarado Tool button -->
+        <button id="btn-alvarado-trigger" class="w-full px-2.5 py-1.5 text-xs font-medium rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/60 flex items-center justify-between transition-colors cursor-pointer">
+          <span class="flex items-center gap-1.5">
+            <span class="text-blue-500 font-bold text-xs">M</span>
+            <span>Alvarado Score Calc</span>
+          </span>
+          <span class="text-[10px] text-slate-400 font-mono">10 pts</span>
+        </button>
+
+        <div class="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 pt-1">
+          <span class="text-[11px]">Appearance</span>
+          <button id="btn-sidebar-theme" class="px-2 py-1 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center gap-1 text-[11px] cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700">
+            <span class="dark:hidden">Light</span>
+            <span class="hidden dark:inline">Dark</span>
+            <svg class="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ======================================================================= -->
+    <!-- MAIN WORKSPACE CANVAS (The Notion / Cloud Page) -->
+    <!-- ======================================================================= -->
+    <main class="flex-1 flex flex-col min-w-0 bg-white dark:bg-slate-950 overflow-y-auto">
+
+      <!-- TOP STICKY BREADCRUMB & ACTION BAR (Desktop & Mobile) -->
+      <div class="sticky top-0 z-30 bg-white/90 dark:bg-slate-950/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 sm:px-6 lg:px-8 py-2.5 flex items-center justify-between gap-3 no-print">
+        <!-- Breadcrumb / Header Title -->
+        <div class="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 truncate">
+          <span class="hidden sm:inline">Emergency CDS</span>
+          <span class="hidden sm:inline text-slate-300 dark:text-slate-600">/</span>
+          <span id="canvas-category-breadcrumb" class="font-medium text-slate-700 dark:text-slate-300 truncate">
+            Lower GIT / Appendix
+          </span>
+          <span class="text-slate-300 dark:text-slate-600">/</span>
+          <span id="canvas-title-breadcrumb" class="font-bold text-slate-900 dark:text-white truncate">
+            Acute Appendicitis
+          </span>
+        </div>
+
+        <!-- Quick Action Buttons -->
+        <div class="flex items-center gap-2 shrink-0">
+          <!-- SBAR Copy Button -->
+          <button id="btn-copy-sbar" class="px-2.5 py-1 text-xs font-semibold rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors flex items-center gap-1.5 cursor-pointer" title="Copy SBAR Handover Note">
+            <svg class="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+            </svg>
+            <span class="hidden sm:inline">Copy SBAR</span>
+            <span class="sm:hidden">SBAR</span>
+          </button>
+
+          <!-- Toggle View Mode: Single Condition vs Overview All -->
+          <button id="btn-toggle-viewmode" class="px-2.5 py-1 text-xs font-medium rounded-md border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors hidden sm:flex items-center gap-1 cursor-pointer">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+            </svg>
+            <span id="viewmode-text">View All (7)</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- STICKY JUMP-TO NAVIGATION BAR (Notion-style anchor pills) -->
+      <div id="sticky-anchors-bar" class="sticky top-[41px] lg:top-[45px] z-20 bg-slate-50/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800/80 px-4 sm:px-6 lg:px-8 py-1.5 overflow-x-auto scrollbar-none flex items-center gap-1.5 no-print">
+        <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mr-1 shrink-0 hidden sm:inline">
+          Jump:
+        </span>
+        <a href="#sec-overview" class="anchor-pill px-2.5 py-1 rounded-md text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-200/80 dark:hover:bg-slate-800 transition-colors whitespace-nowrap">
+          Overview
+        </a>
+        <a href="#sec-resuscitation" class="anchor-pill px-2.5 py-1 rounded-md text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-200/80 dark:hover:bg-slate-800 transition-colors whitespace-nowrap">
+          ⚡ Resuscitation
+        </a>
+        <a href="#sec-labs" class="anchor-pill px-2.5 py-1 rounded-md text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-200/80 dark:hover:bg-slate-800 transition-colors whitespace-nowrap">
+          🧪 Diagnostics & Labs
+        </a>
+        <a href="#sec-imaging" class="anchor-pill px-2.5 py-1 rounded-md text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-200/80 dark:hover:bg-slate-800 transition-colors whitespace-nowrap">
+          📷 Imaging / POCUS
+        </a>
+        <a href="#sec-redflags" class="anchor-pill px-2.5 py-1 rounded-md text-xs font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors whitespace-nowrap">
+          🚨 Surgical Triggers
+        </a>
+        <a href="#sec-algorithm" class="anchor-pill px-2.5 py-1 rounded-md text-xs font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition-colors whitespace-nowrap">
+          🔀 AMBOSS Flowchart
+        </a>
+      </div>
+
+      <!-- MAIN READING CANVAS -->
+      <div class="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        
+        <!-- SINGLE CONDITION CONTAINER -->
+        <div id="single-condition-view" class="space-y-8">
+          <!-- Rendered dynamically -->
+        </div>
+
+        <!-- MULTI-CONDITION OVERVIEW (Used when user switches to 'View All') -->
+        <div id="all-conditions-view" class="hidden space-y-6">
+          <!-- Rendered dynamically -->
+        </div>
+
+        <!-- EMPTY STATE -->
+        <div id="empty-state" class="hidden py-16 text-center">
+          <div class="w-12 h-12 mx-auto mb-3 text-slate-300 dark:text-slate-700">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-200">No condition matches your search</h3>
+          <p class="text-xs text-slate-500 mt-1">Try searching for symptoms, ultrasound findings, or lab tests.</p>
+          <button id="btn-reset-search" class="mt-3 px-3 py-1.5 text-xs font-semibold bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+            Reset Search
+          </button>
+        </div>
+
+      </div>
+
+    </main>
+
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MOBILE BOTTOM FLOATING ACTION BAR -->
+  <!-- ========================================================================= -->
+  <div class="lg:hidden fixed bottom-3 left-4 right-4 z-30 flex items-center justify-between gap-2 p-1.5 bg-slate-900/90 dark:bg-slate-800/95 text-white backdrop-blur-md rounded-2xl shadow-xl border border-slate-700/60 no-print">
+    <button id="btn-bottom-menu" class="flex-1 py-2 px-3 text-xs font-semibold rounded-xl bg-slate-800 dark:bg-slate-700/70 hover:bg-slate-700 text-white flex items-center justify-center gap-1.5">
+      <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/>
+      </svg>
+      <span>Switch Condition</span>
+    </button>
+
+    <button id="btn-bottom-alvarado" class="py-2 px-3 text-xs font-semibold rounded-xl bg-slate-800 dark:bg-slate-700/70 hover:bg-slate-700 text-blue-300 flex items-center gap-1">
+      <span class="w-4 h-4 rounded-full bg-blue-500 text-white flex items-center justify-center text-[10px] font-bold">M</span>
+      <span>Alvarado</span>
+    </button>
+
+    <button id="btn-bottom-sbar" class="p-2 rounded-xl bg-slate-800 dark:bg-slate-700/70 hover:bg-slate-700 text-slate-300" title="Copy SBAR">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: ALVARADO SCORE CALCULATOR -->
+  <!-- ========================================================================= -->
+  <div id="modal-alvarado" class="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 hidden">
+    <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-lg w-full border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-h-[90vh]">
+      <!-- Modal Header -->
+      <div class="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/50 shrink-0">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-sm shadow-xs">
+            M
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-slate-900 dark:text-white">Alvarado Score (MANTRELS)</h3>
+            <p class="text-[11px] text-slate-500 dark:text-slate-400">Risk stratification for suspected acute appendicitis</p>
+          </div>
+        </div>
+        <button id="btn-close-alvarado" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Checkboxes -->
+      <div class="p-5 space-y-2.5 overflow-y-auto flex-1 text-xs">
+        <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Symptoms</div>
+        <label class="flex items-center justify-between p-2.5 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer">
+          <span class="text-slate-800 dark:text-slate-200 font-medium">Migration of pain to RIF (M)</span>
+          <div class="flex items-center gap-2">
+            <span class="font-bold text-slate-400">+1 pt</span>
+            <input type="checkbox" data-points="1" class="alvarado-check w-4 h-4 text-blue-600 rounded">
+          </div>
+        </label>
+        <label class="flex items-center justify-between p-2.5 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer">
+          <span class="text-slate-800 dark:text-slate-200 font-medium">Anorexia / acetone in urine (A)</span>
+          <div class="flex items-center gap-2">
+            <span class="font-bold text-slate-400">+1 pt</span>
+            <input type="checkbox" data-points="1" class="alvarado-check w-4 h-4 text-blue-600 rounded">
+          </div>
+        </label>
+        <label class="flex items-center justify-between p-2.5 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer">
+          <span class="text-slate-800 dark:text-slate-200 font-medium">Nausea or vomiting (N)</span>
+          <div class="flex items-center gap-2">
+            <span class="font-bold text-slate-400">+1 pt</span>
+            <input type="checkbox" data-points="1" class="alvarado-check w-4 h-4 text-blue-600 rounded">
+          </div>
+        </label>
+
+        <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400 pt-1">Signs</div>
+        <label class="flex items-center justify-between p-2.5 rounded-lg border border-blue-200 dark:border-blue-900/50 bg-blue-50/40 dark:bg-blue-950/20 hover:bg-blue-50 cursor-pointer">
+          <span class="text-slate-900 dark:text-slate-100 font-semibold">Tenderness in Right Iliac Fossa (T)</span>
+          <div class="flex items-center gap-2">
+            <span class="font-extrabold text-blue-600 dark:text-blue-400">+2 pts</span>
+            <input type="checkbox" data-points="2" class="alvarado-check w-4 h-4 text-blue-600 rounded">
+          </div>
+        </label>
+        <label class="flex items-center justify-between p-2.5 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer">
+          <span class="text-slate-800 dark:text-slate-200 font-medium">Rebound tenderness in RIF (R)</span>
+          <div class="flex items-center gap-2">
+            <span class="font-bold text-slate-400">+1 pt</span>
+            <input type="checkbox" data-points="1" class="alvarado-check w-4 h-4 text-blue-600 rounded">
+          </div>
+        </label>
+        <label class="flex items-center justify-between p-2.5 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer">
+          <span class="text-slate-800 dark:text-slate-200 font-medium">Elevated temperature &ge; 37.3&deg;C / 99.1&deg;F (E)</span>
+          <div class="flex items-center gap-2">
+            <span class="font-bold text-slate-400">+1 pt</span>
+            <input type="checkbox" data-points="1" class="alvarado-check w-4 h-4 text-blue-600 rounded">
+          </div>
+        </label>
+
+        <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400 pt-1">Laboratory</div>
+        <label class="flex items-center justify-between p-2.5 rounded-lg border border-blue-200 dark:border-blue-900/50 bg-blue-50/40 dark:bg-blue-950/20 hover:bg-blue-50 cursor-pointer">
+          <span class="text-slate-900 dark:text-slate-100 font-semibold">Leukocytosis &gt; 10,000 /&mu;L (L)</span>
+          <div class="flex items-center gap-2">
+            <span class="font-extrabold text-blue-600 dark:text-blue-400">+2 pts</span>
+            <input type="checkbox" data-points="2" class="alvarado-check w-4 h-4 text-blue-600 rounded">
+          </div>
+        </label>
+        <label class="flex items-center justify-between p-2.5 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer">
+          <span class="text-slate-800 dark:text-slate-200 font-medium">Shift to the left of neutrophils &gt; 75% (S)</span>
+          <div class="flex items-center gap-2">
+            <span class="font-bold text-slate-400">+1 pt</span>
+            <input type="checkbox" data-points="1" class="alvarado-check w-4 h-4 text-blue-600 rounded">
+          </div>
+        </label>
+      </div>
+
+      <!-- Result Footer -->
+      <div class="p-4 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-200 dark:border-slate-800 shrink-0">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-[11px] text-slate-500">Calculated Score</div>
+            <div id="alvarado-total" class="text-2xl font-black text-slate-900 dark:text-white">0 / 10</div>
+          </div>
+          <div id="alvarado-interpretation" class="text-right">
+            <span class="inline-block px-2.5 py-1 rounded-md text-xs font-bold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+              Low probability (&le; 4)
+            </span>
+            <p class="text-[11px] text-slate-500 mt-0.5">Discharge or evaluate alternate etiologies.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- JAVASCRIPT & COMPLETE CLINICAL DATASET -->
+  <!-- ========================================================================= -->
+  <script>
+    /**
+     * ==============================================================================
+     * EMERGENCY_CONDITIONS CLINICAL DATASET
+     * ==============================================================================
+     */
+    const EMERGENCY_CONDITIONS = [
+      {
+        id: "appendicitis",
+        title: "Acute Appendicitis",
+        category: "Lower GIT / Appendix",
+        icon: "🩺",
+        badge: "High Frequency",
+        highlightNotice: "Alvarado Score (MANTRELS) highlight: Score ≥ 7 indicates high probability warranting surgical evaluation or appendectomy.",
+        presentingComplaint: "Periumbilical dull ache migrating to the Right Iliac Fossa (RIF) within 12–24 hours, accompanied by anorexia ('hamburger sign'), low-grade fever, nausea, and vomiting.",
+        bedsideResuscitation: {
+          npo: "Strict NPO immediately. Absolute bowel rest.",
+          fluids: "IV balanced crystalloid (Hartmann's or Plasmalyte) at maintenance + deficit correction (20–30 mL/kg/24h).",
+          analgesia: "IV Paracetamol 1g QDS + titrated IV Opioids (Fentanyl/Morphine). Timely analgesia does NOT mask physical findings.",
+          tubes: "Place 2x large-bore IV cannulae (16–18G). Place NG tube only if persistent vomiting, distension, or mechanical ileus.",
+          antibiotics: "Prophylactic IV Ceftriaxone 2g + Metronidazole 500mg administered within 60 minutes prior to surgical incision."
+        },
+        diagnosticsAndLabs: [
+          {
+            test: "White Blood Cell Count (WBC)",
+            normalRange: "4,000 – 11,000 /µL",
+            pathological: "Marked leukocytosis (12,000 – 18,000 /µL) with left shift (>75% neutrophils)",
+            significance: "Elevated in 80–85% of acute cases. WBC >18,000 raises high suspicion of perforation or gangrene."
+          },
+          {
+            test: "C-Reactive Protein (CRP)",
+            normalRange: "< 5.0 mg/L",
+            pathological: "Significantly elevated (>25 – 50 mg/L)",
+            significance: "Combined normal WBC + normal CRP provides a >98% negative predictive value for appendicitis."
+          },
+          {
+            test: "Serum Lactate",
+            normalRange: "0.5 – 1.6 mmol/L",
+            pathological: "Elevated (>2.0 mmol/L)",
+            significance: "Early warning biomarker for appendiceal gangrene, bowel ischemia, or systemic sepsis."
+          },
+          {
+            test: "Urinalysis & Urine β-hCG",
+            normalRange: "Clean / Negative",
+            pathological: "Mild microscopic hematuria/pyuria (20% due to ureteral irritation); β-hCG must be strictly negative",
+            significance: "Mandatory β-hCG to rule out ruptured ectopic pregnancy in all females of childbearing age."
+          },
+          {
+            test: "Serum Creatinine & Electrolytes",
+            normalRange: "Cr: 0.6 – 1.2 mg/dL",
+            pathological: "Prerenal azotemia with elevated BUN:Cr ratio (>20:1)",
+            significance: "Reflects hypovolemia from third-spacing and persistent emesis; guides pre-op fluid resuscitation."
+          }
+        ],
+        imaging: {
+          firstLine: "Graded Compression Bedside Ultrasound (US)",
+          ultrasoundFindings: [
+            "Blind-ending, non-compressible, aperistaltic tubular loop in RIF",
+            "Outer diameter > 6 mm (transverse target / 'bull's-eye' sign)",
+            "Appendicolith / fecalith (hyperechoic shadow casting acoustic shadow)",
+            "Prominent peri-appendiceal hyperechoic fat and localized fluid pocket"
+          ],
+          crossSectional: "Abdominopelvic CT with IV Contrast: Gold standard in adults (>95% sensitivity/specificity). Shows wall thickening >2mm, peri-appendiceal stranding, and extraluminal air if perforated."
+        },
+        surgicalTriggers: [
+          "Involuntary guarding, rebound tenderness, rigid 'board-like' abdomen (diffuse peritonitis from perforation)",
+          "Septic shock: Refractory hypotension (MAP < 65 mmHg) or hyperlactatemia despite fluid challenge",
+          "Free intraperitoneal extraluminal gas (pneumoperitoneum) or complex pelvic abscess on imaging",
+          "Failure of non-operative conservative antibiotic trial within 24–48 hours",
+          "Alvarado score ≥ 7 in adult males or CT-confirmed acute luminal obstruction with appendicolith"
+        ],
+        algorithm: {
+          step1Triage: "Step 1: Rapid Hemodynamic Triage — Assess vitals, peritonitic signs, and Alvarado/clinical risk score.",
+          unstable: {
+            title: "UNSTABLE / SEPTIC SHOCK / GENERALIZED PERITONITIS",
+            step2Resus: "Step 2: Aggressive Bedside Resuscitation — Insert 2 large-bore (14–16G) IVs, warm crystalloid bolus 30 mL/kg, send type & crossmatch 2–4 units pRBCs, IV broad-spectrum antibiotics (Ceftriaxone + Metronidazole), insert Foley to track urine output (>0.5 mL/kg/h).",
+            step3Action: "Step 3: Emergent Theater Action — Do NOT delay for CT scan. Transport directly to Operating Room for emergent Laparoscopic or Open Appendectomy and peritoneal lavage."
+          },
+          stable: {
+            title: "HEMODYNAMICALLY STABLE / LOCALIZED RIF TENDERNESS",
+            step2Resus: "Step 2: Definitive Diagnostic Workup — Bedside/formal ultrasound (especially in children/young adults/pregnant). In adults with indeterminate US, obtain contrast-enhanced abdominopelvic CT. Keep strictly NPO with maintenance fluids.",
+            step3Action: "Step 3: Prioritized Surgical Intervention — If appendicitis confirmed: schedule Laparoscopic Appendectomy within 12–24 hours. If Alvarado ≤ 4: active observation or outpatient safe discharge."
+          }
+        }
+      },
+      {
+        id: "cholecystitis",
+        title: "Acute Cholecystitis",
+        category: "Hepatobiliary",
+        icon: "🟢",
+        badge: "Tokyo TG18 Guidelines",
+        highlightNotice: "Tokyo TG18 criteria: Local signs (Murphy's, RUQ mass/pain) + Systemic signs (fever, WBC/CRP) + Definitive ultrasound criteria.",
+        presentingComplaint: "Severe, constant Right Upper Quadrant (RUQ) or epigastric pain radiating to the right scapula/shoulder, postprandial onset (often fatty meal), fever, and positive Murphy's sign.",
+        bedsideResuscitation: {
+          npo: "Strict NPO. Rest the biliary tree and prepare for early laparoscopic cholecystectomy.",
+          fluids: "IV balanced crystalloids (Ringer's Lactate or Hartmann's) 1.5–2 mL/kg/h to maintain euvolemia.",
+          analgesia: "IV Ketorolac (NSAID of choice unless renal impairment) + titrated IV opioids (buprenorphine/fentanyl).",
+          tubes: "Peripheral IV lines x2. NG tube decompression if protracted vomiting or paralytic ileus is present.",
+          antibiotics: "IV Ceftriaxone 2g daily + Metronidazole 500mg TDS, or Piperacillin-Tazobactam 4.5g TDS if septic."
+        },
+        diagnosticsAndLabs: [
+          {
+            test: "White Blood Cell Count (WBC)",
+            normalRange: "4,000 – 11,000 /µL",
+            pathological: "Marked leukocytosis (>12,000 to >18,000 /µL) with neutrophilia",
+            significance: "WBC >18,000 /µL is a Tokyo Guidelines Grade II (Moderate) severity indicator."
+          },
+          {
+            test: "Total & Direct Bilirubin",
+            normalRange: "Total: 0.2 – 1.2 mg/dL",
+            pathological: "Mild elevation (<2.5 mg/dL) or direct hyperbilirubinemia (>3.0 mg/dL)",
+            significance: "Marked elevation >3.0–4.0 mg/dL strongly suggests choledocholithiasis or Mirizzi syndrome."
+          },
+          {
+            test: "Serum Lipase / Amylase",
+            normalRange: "Lipase: 10 – 140 U/L",
+            pathological: "Normal or borderline elevated (<3x upper limit of normal)",
+            significance: "Elevation >3x ULN confirms concurrent gallstone acute pancreatitis."
+          },
+          {
+            test: "Alkaline Phosphatase (ALP) & GGT",
+            normalRange: "ALP: 44 – 147 U/L",
+            pathological: "Moderately elevated in obstructive biliary pathology",
+            significance: "Signifies common bile duct involvement, cholangitis, or mechanical stone impaction."
+          },
+          {
+            test: "C-Reactive Protein (CRP)",
+            normalRange: "< 5.0 mg/L",
+            pathological: "Marked elevation (>30 mg/L)",
+            significance: "Correlates closely with histological gangrene and necrosis of the gallbladder wall."
+          }
+        ],
+        imaging: {
+          firstLine: "RUQ Bedside Ultrasound (Tokyo Guidelines TG18 Criteria)",
+          ultrasoundFindings: [
+            "Sonographic Murphy's Sign: Maximum tenderness directly beneath the probe over the gallbladder",
+            "Gallbladder wall thickening ≥ 4 mm (double contour/striated hypoechoic halo)",
+            "Gallbladder enlargement: Long axis > 8 cm, short axis > 4 cm (hydrops)",
+            "Incarcerated stone in gallbladder neck or cystic duct with pericholecystic fluid halo"
+          ],
+          crossSectional: "Abdominal CT or MRCP: Indicated if suspicion of choledocholithiasis, emphysematous cholecystitis (gas in wall/lumen), or gangrenous perforation."
+        },
+        surgicalTriggers: [
+          "Tokyo Grade III (Severe): Associated organ failure (shock, GCS decline, PaO2/FiO2 <300, Cr >2.0, INR >1.5, platelets <100k)",
+          "Emphysematous or gangrenous cholecystitis (gas in wall, absent Doppler flow, wall sloughing)",
+          "Pericholecystic abscess, gallbladder perforation, or biliary peritonitis",
+          "Failure of medical treatment after 24–48 hours of broad-spectrum IV antibiotics",
+          "High-risk ascending cholangitis (Charcot's triad / Reynolds' pentad)"
+        ],
+        algorithm: {
+          step1Triage: "Step 1: Rapid Hemodynamic & TG18 Severity Triage — Differentiate Grade I (Mild), Grade II (Moderate), and Grade III (Severe / Organ Failure).",
+          unstable: {
+            title: "UNSTABLE / SEPTIC SHOCK / TG18 GRADE III OR PERITONITIS",
+            step2Resus: "Step 2: ICU Resuscitation & Urgent Decompression — Rapid IV crystalloids, broad-spectrum IV Pip-Taz, vasopressors (Norepinephrine) if refractory shock, cardiovascular stabilization.",
+            step3Action: "Step 3: Emergent Theater / Interventional Radiology — If patient is unfit for general anesthesia: Bedside Percutaneous Transhepatic Gallbladder Drainage (PTGBD). If fit or perforated: Emergent Laparoscopic/Open Cholecystectomy with subtotal bailout if 'frozen Calot's'."
+          },
+          stable: {
+            title: "HEMODYNAMICALLY STABLE / TG18 GRADE I OR II",
+            step2Resus: "Step 2: Workup & Surgical Planning — Confirm ultrasound Tokyo criteria, keep NPO, IV fluids, IV analgesia, evaluate CBD on LFTs/MRCP if dilated.",
+            step3Action: "Step 3: Early Laparoscopic Cholecystectomy — Perform within 72 hours of symptom onset (optimal window reduces conversion rate and hospital stay)."
+          }
+        }
+      },
+      {
+        id: "pancreatitis",
+        title: "Acute Pancreatitis",
+        category: "Pancreas & Upper GIT",
+        icon: "🟣",
+        badge: "Atlanta Criteria",
+        highlightNotice: "Revised Atlanta Criteria: Requires 2 of 3 (epigastric pain radiating to back, lipase ≥3x ULN, characteristic CT/MRI). Early fluid resuscitation is critical!",
+        presentingComplaint: "Severe, acute epigastric pain boring through to the back, relieved by leaning forward; accompanied by profound nausea, persistent vomiting, tachycardia, abdominal distension.",
+        bedsideResuscitation: {
+          npo: "Initial NPO while nauseated/vomiting; resume early oral feeding (low-fat solid diet) as soon as ileus and pain resolve.",
+          fluids: "Early Goal-Directed Resuscitation: Lactated Ringer's preferred over normal saline (200–500 mL/h, or 20 mL/kg bolus followed by 3 mL/kg/h). Aim for urine output ≥0.5–1.0 mL/kg/h, Hct ≤44%, BUN decrease.",
+          analgesia: "Multimodal analgesia: IV Buprenorphine, Hydromorphone, or Fentanyl PCA (adequate analgesia reduces splanchnic vasoconstriction).",
+          tubes: "NG tube ONLY if protracted vomiting or symptomatic gastric ileus. Large-bore peripheral lines x2; urinary catheter for hourly diuresis tracking.",
+          antibiotics: "Routine prophylactic antibiotics are NOT recommended in acute pancreatitis. Reserved only for documented infected necrosis or cholangitis."
+        },
+        diagnosticsAndLabs: [
+          {
+            test: "Serum Lipase",
+            normalRange: "10 – 140 U/L",
+            pathological: "Marked elevation > 3x Upper Limit of Normal (> 400–600 U/L)",
+            significance: "Highest sensitivity (95%) and specificity (99%); remains elevated longer than amylase."
+          },
+          {
+            test: "Serum Amylase",
+            normalRange: "30 – 110 U/L",
+            pathological: "Elevated > 3x Upper Limit of Normal (> 350 U/L)",
+            significance: "Rises rapidly within 3–6 hours, normalizes earlier; less specific than lipase."
+          },
+          {
+            test: "Hematocrit (Hct)",
+            normalRange: "36 – 50 %",
+            pathological: "Hemoconcentration (Hct > 44 % on admission or non-decreasing at 24h)",
+            significance: "Marker of massive capillary leak and retroperitoneal fluid sequestration; predicts pancreatic necrosis."
+          },
+          {
+            test: "Blood Urea Nitrogen (BUN) & Cr",
+            normalRange: "BUN: 7 – 20 mg/dL",
+            pathological: "BUN > 20 mg/dL or rising BUN at 24h",
+            significance: "Independent predictor of mortality and multiorgan failure."
+          },
+          {
+            test: "Serum Calcium (Corrected)",
+            normalRange: "8.5 – 10.5 mg/dL",
+            pathological: "Hypocalcemia (< 8.0 mg/dL)",
+            significance: "Occurs due to saponification of peripancreatic retroperitoneal fat; indicator of severe disease."
+          },
+          {
+            test: "Alanine Aminotransferase (ALT)",
+            normalRange: "7 – 56 U/L",
+            pathological: "ALT > 150 U/L",
+            significance: ">95% positive predictive value for gallstone (biliary) pancreatitis etiology."
+          }
+        ],
+        imaging: {
+          firstLine: "Transabdominal Ultrasound on Admission",
+          ultrasoundFindings: [
+            "Evaluate for cholelithiasis, gallbladder sludge, and Common Bile Duct (CBD) dilation (>6-7 mm)",
+            "Pancreas often obscured by overlying ileus gas, but may show diffusely enlarged, hypoechoic gland",
+            "Screen for peripancreatic fluid collections and ascites"
+          ],
+          crossSectional: "Contrast-Enhanced CT (CECT): NOT indicated in first 48–72h unless diagnosis uncertain (early CT underestimates necrosis). Optimal at 72–96h to stage necrotizing vs interstitial pancreatitis (Balthazar score)."
+        },
+        surgicalTriggers: [
+          "Infected pancreatic necrosis with clinical deterioration (gas bubbles on CECT or positive CT-guided FNA)",
+          "Abdominal Compartment Syndrome (Intra-abdominal pressure > 20 mmHg with new organ failure refractory to medical decompression)",
+          "Concurrent acute ascending cholangitis (requires emergent ERCP within 24 hours)",
+          "Bowel perforation or acute mesenteric arterial/venous infarction",
+          "Index admission cholecystectomy indicated for mild biliary pancreatitis prior to discharge"
+        ],
+        algorithm: {
+          step1Triage: "Step 1: Clinical Triage & Atlanta Stratification — Rule out organ failure (cardiovascular SBP <90, respiratory PaO2/FiO2 <300, renal Cr >2.0). Calculate BISAP or Glasgow-Imrie score.",
+          unstable: {
+            title: "UNSTABLE / SEVERE ACUTE PANCREATITIS / PERSISTENT ORGAN FAILURE",
+            step2Resus: "Step 2: Intensive ICU Resuscitation — Immediate ICU admission. Aggressive balanced crystalloid resuscitation guided by serial BUN/Hct and bedside ultrasound IVC collapsibility. Place Foley catheter and monitor bladder pressure (ACS). If cholangitis present: urgent ERCP within 24h.",
+            step3Action: "Step 3: Minimally Invasive 'Step-Up' Approach — In infected necrosis: delay intervention ideally >4 weeks (walled-off necrosis). Step 1: Percutaneous/endoscopic catheter drainage. Step 2: Video-assisted retroperitoneal debridement (VARD) or necrosectomy only if failure to improve."
+          },
+          stable: {
+            title: "HEMODYNAMICALLY STABLE / MILD TO MODERATE PANCREATITIS",
+            step2Resus: "Step 2: Focused Rehydration & Workup — Titrate IV Lactated Ringer's (maintain urine output >0.5 mL/kg/h). Check lipid panel and calcium. Start early oral nutrition as tolerated.",
+            step3Action: "Step 3: Definitive Etiological Treatment — For biliary pancreatitis: schedule index laparoscopic cholecystectomy during same admission to prevent recurrent lethal attacks."
+          }
+        }
+      },
+      {
+        id: "perforated_peptic_ulcer",
+        title: "Perforated Peptic Ulcer (PPU)",
+        category: "Pancreas & Upper GIT",
+        icon: "🔴",
+        badge: "Critical Surgical Emergency",
+        highlightNotice: "Classic triad: Sudden-onset knife-like epigastric pain + Board-like abdominal rigidity + Free subdiaphragmatic gas / Rigler's sign.",
+        presentingComplaint: "Sudden, excruciating, 'thunderclap' epigastric pain instantly spreading to entire abdomen. Patient lies motionless (movement worsens agony), shallow breathing, diaphoresis.",
+        bedsideResuscitation: {
+          npo: "Strict NPO immediately. Absolute bowel rest.",
+          fluids: "Immediate rapid crystalloid resuscitation via 2 large-bore peripheral lines (aim to restore perfusion & correct metabolic acidosis).",
+          analgesia: "IV Opioids (Morphine / Fentanyl titrated) + IV antiemetics (Ondansetron). Avoid NSAIDs (catastrophic in peptic ulceration).",
+          tubes: "Insert large-bore Nasogastric Tube (16–18 Fr) to continuous low suction (removes acid/air, limits peritoneal soiling). Urinary Foley catheter.",
+          antibiotics: "IV Broad-Spectrum: Ceftriaxone 2g + Metronidazole 500mg, or Piperacillin-Tazobactam 4.5g + IV Pantoprazole 80mg bolus then 8mg/h."
+        },
+        diagnosticsAndLabs: [
+          {
+            test: "White Blood Cell Count (WBC)",
+            normalRange: "4,000 – 11,000 /µL",
+            pathological: "Marked leukocytosis (>15,000 /µL) with toxic granulations",
+            significance: "Rapid systemic inflammatory response to chemical and bacterial peritonitis."
+          },
+          {
+            test: "Serum Amylase",
+            normalRange: "30 – 110 U/L",
+            pathological: "Mildly to moderately elevated (typically 150–350 U/L, rarely >3x ULN)",
+            significance: "Elevated from peritoneal absorption of gastroduodenal fluid; must not be confused with acute pancreatitis."
+          },
+          {
+            test: "Serum Lactate",
+            normalRange: "0.5 – 1.6 mmol/L",
+            pathological: "Elevated (>2.5 – 4.0 mmol/L)",
+            significance: "Indicates systemic tissue hypoperfusion and impending septic shock."
+          },
+          {
+            test: "Arterial / Venous Blood Gas (ABG/VBG)",
+            normalRange: "pH: 7.35 – 7.45, HCO3: 22 – 26",
+            pathological: "Metabolic acidosis with elevated anion gap",
+            significance: "Reflects profound septic shock, dehydration, and anaerobic metabolism."
+          },
+          {
+            test: "Coagulation Screen & Blood Group",
+            normalRange: "INR: 0.8 – 1.2",
+            pathological: "Prolonged INR or thrombocytopenia in established sepsis",
+            significance: "Pre-operative requirement; immediate type & crossmatch 4 units pRBCs."
+          }
+        ],
+        imaging: {
+          firstLine: "Erect Chest X-Ray & Supine Abdominal Radiograph",
+          ultrasoundFindings: [
+            "Erect CXR: Free air under the right hemi-diaphragm (crescent of gas in >75% of perforations)",
+            "Supine Abdominal X-Ray: Rigler's sign (double wall sign: air outlines both luminal and peritoneal margins of bowel wall)",
+            "Falciform ligament sign: Gas outlining the falciform ligament in supine position",
+            "POCUS: Reverberation 'A-line' artifacts anterior to hepatic surface with absent lung slide equivalent"
+          ],
+          crossSectional: "Abdominal CT with IV Contrast (and oral water-soluble if feasible): Sensitivity >98%. Demonstrates extraluminal gas, focal gastroduodenal wall defect, and localized fluid collections."
+        },
+        surgicalTriggers: [
+          "Definitive signs of peritonitis: Board-like muscular rigidity, diffuse involuntary guarding, absent bowel sounds",
+          "Radiological evidence of pneumoperitoneum with acute abdomen",
+          "Septic shock refractory to initial fluid resuscitation (Boey score ≥ 2 indicates high mortality)",
+          "Persistent or worsening peritonitis despite conservative trial (Taylor's method is rarely used today)",
+          "Extravasation of oral water-soluble contrast on CT"
+        ],
+        algorithm: {
+          step1Triage: "Step 1: Rapid Hemodynamic Triage — Check for board-like abdomen, hypotension (MAP <65), and calculate Boey score (shock, perforation >24h, medical co-morbidity).",
+          unstable: {
+            title: "UNSTABLE / SEPTIC SHOCK / GENERALIZED RIGID PERITONITIS",
+            step2Resus: "Step 2: Emergency Resuscitation & Theatre Prep — Insert 2 large-bore (14–16G) IVs, initiate high-volume warmed crystalloids, NG decompression to continuous suction, IV Pantoprazole 80mg bolus, broad-spectrum IV antibiotics, Foley catheter, call on-call theater team & anesthetist immediately.",
+            step3Action: "Step 3: Emergent Exploratory Laparotomy / Laparoscopy — Emergency surgical repair: Graham omental patch (cellan-Jones or pedicled omental plug) with thorough 6–10L peritoneal irrigation. Biopsy gastric ulcer edges to rule out malignancy."
+          },
+          stable: {
+            title: "HEMODYNAMICALLY STABLE / SEALED OR EQUIVOCAL PRESENTATION",
+            step2Resus: "Step 2: Urgent Contrast CT & Resuscitation — Confirm site of perforation on IV-contrast CT. Place NG tube and start IV PPI and broad-spectrum antibiotics.",
+            step3Action: "Step 3: Urgent Laparoscopic Omental Patch Repair — Proceed to urgent laparoscopic Graham patch repair within 6 hours (delay increases mortality by 2% per hour after 24h)."
+          }
+        }
+      },
+      {
+        id: "renal_colic",
+        title: "Acute Renal Colic (Urolithiasis)",
+        category: "Urology & Trauma",
+        icon: "💧",
+        badge: "Urgent Stent vs MET",
+        highlightNotice: "Critical Emergency Trigger: Infected Obstructed Hydronephrotic Stone is an absolute indication for emergent JJ stenting or PCN decompression! Size cutoff: <5mm (trial MET) vs >10mm (surgical).",
+        presentingComplaint: "Sudden, excruciating, writhing unilateral loin-to-groin pain, patient unable to find a comfortable position; microscopic/gross hematuria, dysuria, nausea, vomiting.",
+        bedsideResuscitation: {
+          npo: "Keep NPO initially if surgical decompression or general anesthesia is likely, or if severe nausea.",
+          fluids: "Gentle IV crystalloids. AVOID forced hyperhydration during acute colic (increases renal pelvic pressure and worsens pain).",
+          analgesia: "First-line: IV NSAIDs (Ketorolac 15–30mg or Diclofenac 75mg IM/IV) — provides superior pain relief by decreasing renal blood flow and ureteral spasm. Second-line: IV Fentanyl/Morphine if NSAIDs contraindicated.",
+          tubes: "Peripheral line x1. DO NOT catheterize bladder unless retention or strict monitoring needed.",
+          antibiotics: "NO antibiotics for uncomplicated sterile stones. If infected obstructed stone: immediate broad-spectrum IV Ceftriaxone 2g or Piperacillin-Tazobactam 4.5g."
+        },
+        diagnosticsAndLabs: [
+          {
+            test: "Urinalysis & Urine Microscopy",
+            normalRange: "RBC < 3 /HPF, WBC < 5 /HPF",
+            pathological: "Microscopic or gross hematuria (85–90%); Pyuria, positive nitrites or leukocyte esterase",
+            significance: "Positive nitrites/WBCs with fever signals infected hydronephrosis (urological emergency)."
+          },
+          {
+            test: "Serum Creatinine & eGFR",
+            normalRange: "Cr: 0.7 – 1.2 mg/dL",
+            pathological: "Acute Kidney Injury (elevated Cr, decreased eGFR)",
+            significance: "Indicates bilateral obstruction, solitary functioning kidney, or severe pre-existing renal compromise."
+          },
+          {
+            test: "White Blood Cell Count (WBC)",
+            normalRange: "4,000 – 11,000 /µL",
+            pathological: "Leukocytosis (>12,000 to >15,000 /µL) with neutrophil left shift",
+            significance: "Normal WBC in sterile colic; significant leukocytosis raises urgent alert for obstructive pyelonephritis."
+          },
+          {
+            test: "Serum Electrolytes (K+, Na+)",
+            normalRange: "K+: 3.5 – 5.0 mmol/L",
+            pathological: "Hyperkalemia in acute post-renal renal shutdown",
+            significance: "Requires urgent correction and emergency urological decompression."
+          },
+          {
+            test: "Serum Uric Acid & Calcium",
+            normalRange: "Ca: 8.5 – 10.5 mg/dL, Urate: 3.5–7.2 mg/dL",
+            pathological: "Hypercalcemia (hyperparathyroidism) or hyperuricemia (urate stones)",
+            significance: "Etiological workup for stone composition and metabolic recurrence prevention."
+          }
+        ],
+        imaging: {
+          firstLine: "Non-Contrast Helical CT of Kidneys, Ureters, and Bladder (CT KUB)",
+          ultrasoundFindings: [
+            "Low-Dose CT KUB (Gold standard, 98% sensitivity): Measures exact stone diameter (mm), density (Hounsfield Units), location, and secondary signs (hydroureter, perinephric stranding).",
+            "Bedside Renal Ultrasound: Assesses hydronephrosis (calyceal blunting/separation), ureterovesical junction (UVJ) stones, acoustic shadowing, and 'twinkling artifact' on Color Doppler."
+          ],
+          crossSectional: "Ultrasound is preferred first-line imaging in pregnant patients and children to avoid ionizing radiation."
+        },
+        surgicalTriggers: [
+          "INFECTED OBSTRUCTED STONE: Fever, rigors, pyuria + hydronephrosis (risk of lethal uroseptic shock within hours)",
+          "Obstructed solitary kidney or bilateral ureteral obstruction with anuria/rapidly rising creatinine",
+          "Intractable renal colic refractory to parenteral multimodal analgesia",
+          "Stone diameter > 10 mm (spontaneous passage probability <10%; requires planned surgical intervention)",
+          "Persistent obstruction causing progressive loss of renal parenchymal function (>4–6 weeks)"
+        ],
+        algorithm: {
+          step1Triage: "Step 1: Rapid Clinical Triage — Screen for systemic sepsis (fever >38°C, tachycardia, hypotension), solitary kidney, or refractory pain.",
+          unstable: {
+            title: "UNSTABLE / INFECTED OBSTRUCTED HYDRONEPHROSIS / UROSEPSIS",
+            step2Resus: "Step 2: Emergency Sepsis Resuscitation — Immediate broad-spectrum IV antibiotics (Pip-Taz or Meropenem), fluid boluses, urgent blood/urine cultures, ICU alert.",
+            step3Action: "Step 3: Emergent Urological Decompression — IMMEDIATE surgical decompression via retrograde Double-J (JJ) ureteral stent placement under fluoroscopy OR Percutaneous Nephrostomy (PCN) tube by Interventional Radiology. NEVER attempt primary stone lithotripsy in an actively infected system!"
+          },
+          stable: {
+            title: "HEMODYNAMICALLY STABLE / UNCOMPLICATED COLIC",
+            step2Resus: "Step 2: CT KUB Stratification — Check stone diameter on non-contrast CT KUB. Ensure normal creatinine and pain is controlled with IV/oral NSAIDs.",
+            step3Action: "Step 3: Size-Guided Management — Stone <5 mm: Trial of Medical Expulsive Therapy (Tamsulosin 0.4mg daily + oral hydration + strain urine, 80% pass). Stone 5–10 mm: Selective MET vs Ureteroscopy (URS). Stone >10 mm: Elective/urgent Ureteroscopy with Holmium laser lithotripsy or Extracorporeal Shock Wave Lithotripsy (ESWL)."
+          }
+        }
+      },
+      {
+        id: "urinary_retention",
+        title: "Acute Urinary Retention (BPH)",
+        category: "Urology & Trauma",
+        icon: "🟡",
+        badge: "Post-Obstructive Diuresis Alert",
+        highlightNotice: "Management pearls: Trial Foley catheter first (SPC contraindicated in bladder cancer/pelvic fracture). Monitor for post-obstructive diuresis (>200 mL/h) and initiate immediate Alpha-1 blocker (Tamsulosin).",
+        presentingComplaint: "Sudden inability to pass urine accompanied by excruciating lower abdominal/suprapubic pain, tense palpable bladder dull to percussion; history of lower urinary tract symptoms (LUTS: weak stream, hesitancy, nocturia).",
+        bedsideResuscitation: {
+          npo: "Not strictly required unless suprapubic puncture/surgical intervention under sedation is anticipated.",
+          fluids: "Monitor fluid balance closely. Replace fluids ONLY if post-obstructive diuresis develops (replace 50–75% of urine loss with 0.45% Saline).",
+          analgesia: "Relief is immediate upon bladder decompression. Antispasmodics (Oxybutynin) if catheter-related bladder spasms occur.",
+          tubes: "Immediate urethral catheterization using a 14–16 Fr silicone/latex Foley catheter with 10 mL balloon. If resistance at prostate: use 18 Fr Coudé-tip catheter (DO NOT force!).",
+          antibiotics: "Prophylactic antibiotics NOT routinely needed unless signs of concurrent urinary tract infection or difficult trauma."
+        },
+        diagnosticsAndLabs: [
+          {
+            test: "Serum Creatinine & BUN",
+            normalRange: "Cr: 0.7 – 1.2 mg/dL",
+            pathological: "Elevated (Post-renal Acute Kidney Injury)",
+            significance: "Bilateral back-pressure hydronephrosis from long-standing chronic retention; indicates high risk of post-obstructive diuresis."
+          },
+          {
+            test: "Serum Potassium & Electrolytes",
+            normalRange: "K+: 3.5 – 5.0 mmol/L",
+            pathological: "Hyperkalemia prior to drainage; profound hypokalemia/hypomagnesemia during high-volume post-obstructive diuresis",
+            significance: "Must monitor serum electrolytes every 12–24h during brisk diuresis."
+          },
+          {
+            test: "Urinalysis & Urine Culture",
+            normalRange: "Negative",
+            pathological: "Pyuria, bacteriuria, microscopic hematuria",
+            significance: "Rule out UTI-precipitated urinary retention and treat with targeted antibiotics."
+          },
+          {
+            test: "Post-Drainage Bladder Output",
+            normalRange: "Normal residual: < 50–100 mL",
+            pathological: "Initial drained volume > 800 – 1,500 mL (Acute on Chronic Retention)",
+            significance: "Volumes >1,000 mL require 24–48h hospital admission for post-obstructive diuresis monitoring."
+          },
+          {
+            test: "Serum PSA (Prostate Specific Antigen)",
+            normalRange: "< 4.0 ng/mL",
+            pathological: "Spuriously elevated in acute retention / catheterization",
+            significance: "DO NOT order PSA during acute retention; wait 4–6 weeks after resolution to avoid false-positive."
+          }
+        ],
+        imaging: {
+          firstLine: "Bedside Bladder Ultrasound / POCUS",
+          ultrasoundFindings: [
+            "Bladder volume calculation: (Width x Depth x Height x 0.52) > 400–1,000 mL",
+            "Enlarged intravesical prostatic protrusion (IPP)",
+            "Thickened trabeculated bladder wall with pseudodiverticula (indicates chronic bladder outlet obstruction)",
+            "Renal ultrasound: Screen for bilateral hydroureteronephrosis and thinned renal parenchyma"
+          ],
+          crossSectional: "Suprapubic Catheter (SPC) Contraindications: Absolute: Non-distended bladder, history of bladder cancer. Relative: Previous lower abdominal surgery with mesh, pelvic hematoma/fracture, uncorrected coagulopathy."
+        },
+        surgicalTriggers: [
+          "Failed urethral catheterization by experienced resident/staff (risk of false passage, urethral trauma)",
+          "Gross hematuria with clot retention causing catheter blockage (requires 3-way irrigating 22–24 Fr catheter)",
+          "Refractory urosepsis secondary to obstructed infected urine",
+          "Pathological post-obstructive diuresis with hemodynamic collapse (>200 mL/h urine output for >2 consecutive hours)",
+          "Recurrent urinary retention despite therapeutic Alpha-1 blocker therapy (indication for TURP / HoLEP)"
+        ],
+        algorithm: {
+          step1Triage: "Step 1: Clinical Triage & Bladder Scan — Confirm palpable/ultrasound distended bladder (>400 mL). Assess for trauma or gross hematuria.",
+          unstable: {
+            title: "FAILED CATHETERIZATION / FALSE PASSAGE / UROSEPSIS / HEMATURIA CLOTS",
+            step2Resus: "Step 2: Emergency Urological Intervention — STOP repeated blind catheter attempts. If gross clots: insert 3-way 22–24 Fr catheter for continuous bladder irrigation. If failed catheterization: call urology for flexible cystoscopy-assisted guidewire placement OR ultrasound-guided percutaneous Suprapubic Catheter (SPC) insertion (confirm no contraindications).",
+            step3Action: "Step 3: Resuscitate & Stabilize — Resuscitate with IV crystalloids and IV antibiotics if septic. Once drainage established, monitor hourly output."
+          },
+          stable: {
+            title: "SUCCESSFUL FOLEY CATHETERIZATION / UNCOMPLICATED RETENTION",
+            step2Resus: "Step 2: Measure Initial Drained Volume & Diuresis Protocol — Record initial volume. Rapid full emptying is safe and recommended. If initial volume >1,000 mL or Cr elevated: admit for 24h post-obstructive diuresis monitoring (vitals, hourly urine output, electrolytes).",
+            step3Action: "Step 3: Medical Therapy & Trial Without Catheter (TWOC) — Immediately start Alpha-1 blocker (Tamsulosin 0.4mg OD). Plan elective TWOC in 3–7 days with outpatient urology follow-up for definitive BPH therapy (TURP)."
+          }
+        }
+      },
+      {
+        id: "urinary_trauma",
+        title: "Urinary System Trauma (Renal & Bladder)",
+        category: "Urology & Trauma",
+        icon: "🛡️",
+        badge: "Damage Control / Laparotomy",
+        highlightNotice: "Clear Divergence: Hemodynamically UNSTABLE or Intraperitoneal Bladder Rupture -> Immediate Laparotomy & 2-Layer Dome Repair. STABLE Grade I-IV Renal Injury or Extraperitoneal Bladder Rupture -> Conservative / Catheter Drainage.",
+        presentingComplaint: "History of high-speed deceleration motor vehicle collision (MVC), direct flank crush, or pelvic fracture; flank ecchymosis (Grey Turner's sign), gross hematuria, suprapubic tenderness, inability to void.",
+        bedsideResuscitation: {
+          npo: "Strict NPO immediately. Prepare for potential emergency surgical theater.",
+          fluids: "ATLS protocol: Balanced crystalloid bolus (1L warm Hartmann's) and early activation of Massive Transfusion Protocol (1:1:1 pRBCs, FFP, Platelets) if in hemorrhagic shock.",
+          analgesia: "IV Fentanyl or titrated opioids (titrate to pain while monitoring mental status and hemodynamics).",
+          tubes: "2 large-bore peripheral lines (14–16G). PELVIC BINDER placed if open-book pelvic fracture suspected. CRITICAL: Examine urethral meatus BEFORE Foley insertion (if blood at meatus, butterfly perineal hematoma, or high-riding prostate -> perform Retrograde Urethrography FIRST!).",
+          antibiotics: "Broad-spectrum IV prophylactic antibiotics (Cefazolin 2g or Ceftriaxone 2g) if penetrating trauma or surgical intervention planned."
+        },
+        diagnosticsAndLabs: [
+          {
+            test: "Serial Hemoglobin & Hematocrit",
+            normalRange: "Hb: 13.5 – 17.5 g/dL",
+            pathological: "Rapid drop in Hb (>2–3 g/dL) or failing to rise post-transfusion",
+            significance: "Indicates active ongoing retroperitoneal arterial hemorrhage (AAST Grade IV/V renal trauma)."
+          },
+          {
+            test: "Urinalysis (Hematuria Triage)",
+            normalRange: "RBC < 3 /HPF",
+            pathological: "Gross hematuria OR microscopic hematuria (>25–50 RBC/HPF) with hypotension (SBP <90)",
+            significance: "Absolute mandate for immediate contrast-enhanced CT with delayed excretory phase imaging."
+          },
+          {
+            test: "Serum Creatinine & Base Deficit / Lactate",
+            normalRange: "Lactate: 0.5 – 1.6 mmol/L",
+            pathological: "Lactate > 3.0 mmol/L, Base Deficit > -6 mEq/L",
+            significance: "Biomarkers of systemic hemorrhagic shock and depth of tissue hypoperfusion."
+          },
+          {
+            test: "Coagulation Profile (INR / aPTT / Fibrinogen)",
+            normalRange: "INR: 0.8 – 1.2, Fibrinogen: 200–400 mg/dL",
+            pathological: "Consumptive coagulopathy (INR >1.5, Fibrinogen <150 mg/dL)",
+            significance: "Part of the lethal trauma triad (acidosis, hypothermia, coagulopathy); triggers MTP protocol."
+          },
+          {
+            test: "Blood Group & Crossmatch",
+            normalRange: "Compatibility: Complete match",
+            pathological: "Urgent demand for 4–6 units uncrossed O-negative / specific type pRBCs",
+            significance: "Required immediately upon arrival for trauma resuscitation."
+          }
+        ],
+        imaging: {
+          firstLine: "eFAST (Bedside) & Contrast CT with Delayed Excretory Phase",
+          ultrasoundFindings: [
+            "eFAST: Detects free fluid in Morison's pouch, splenorenal recess, and pelvis (cannot differentiate blood from urine)",
+            "Contrast-Enhanced MDCT: Triphasic imaging (Arterial, Venous, and 10–15 min Delayed Phase). Delayed phase is mandatory to detect contrast extravasation from the renal collecting system or ureter.",
+            "CT Cystography: Retrograde bladder filling via catheter under gravity with ≥350 mL dilute contrast (MUST image both distended and post-drainage views)."
+          ],
+          crossSectional: "CT Cystography Differentiation: INTRAPERITONEAL: Contrast outlines bowel loops and paracolic gutters (requires laparotomy). EXTRAPERITONEAL: Contrast contained in pelvic space of Retzius ('sunburst' flame pattern, managed with catheter)."
+        },
+        surgicalTriggers: [
+          "HEMODYNAMIC INSTABILITY refractory to aggressive fluid/blood resuscitation with suspected retroperitoneal bleed",
+          "Expanding or pulsatile retroperitoneal hematoma identified during exploratory laparotomy",
+          "Grade V Renal Vascular Avulsion (complete devascularization or main renal vein/artery transection)",
+          "INTRAPERITONEAL BLADDER RUPTURE (always requires formal surgical repair to prevent chemical/bacterial peritonitis)",
+          "Bladder neck injury, penetrating bladder wound, or bone fragments protruding into bladder lumen"
+        ],
+        algorithm: {
+          step1Triage: "Step 1: ATLS Primary Survey & Hematuria Screening — Assess hemodynamic stability (SBP, Shock Index), pelvic stability, and check for gross hematuria or blood at meatus.",
+          unstable: {
+            title: "HEMODYNAMICALLY UNSTABLE / EXPANDING HEMATOMA / INTRAPERITONEAL TEAR",
+            step2Resus: "Step 2: Emergency Resuscitation & Massive Transfusion — Activate Massive Transfusion Protocol (1:1:1), apply pelvic binder if pelvic fracture, insert arterial line, rapid transport directly to Operating Room (or Hybrid Angio-OR).",
+            step3Action: "Step 3: Emergent Exploratory Laparotomy — For Intraperitoneal Bladder Rupture: Primary 2-layer absorbable dome closure + large transurethral catheter drainage. For Shattered Kidney (Grade V) with uncontrollable bleeding: Nephrectomy or vascular control (or angioembolization if stable in hybrid suite)."
+          },
+          stable: {
+            title: "HEMODYNAMICALLY STABLE / GRADE I–IV RENAL TEAR / EXTRAPERITONEAL RUPTURE",
+            step2Resus: "Step 2: Triphasic Contrast CT & CT Cystography — Accurately grade renal injury (AAST Grade I–IV). Confirm extravasation is extraperitoneal on retrograde CT cystogram (350 mL contrast).",
+            step3Action: "Step 3: Conservative Non-Operative Management — For Extraperitoneal Bladder Tear: Large-bore (20–22 Fr) transurethral Foley catheter drainage for 10–14 days + repeat cystogram. For Grade I–IV Renal Injury: Strict bed rest, serial hematocrit checks every 6h, angioembolization for active contrast blush."
+          }
+        }
+      }
+    ];
+
+    /**
+     * ==============================================================================
+     * NOTION-STYLE WORKSPACE STATE CONTROLLER
+     * ==============================================================================
+     */
+    let activeConditionId = "appendicitis";
+    let selectedCategory = "All";
+    let searchQuery = "";
+    let isViewAllMode = false;
+
+    // DOM References
+    const sidebarNav = document.getElementById("sidebar-conditions-nav");
+    const sidebarSearch = document.getElementById("sidebar-search");
+    const clearSidebarSearchBtn = document.getElementById("btn-clear-sidebar-search");
+    const sidebarCategories = document.getElementById("sidebar-categories");
+    const singleConditionView = document.getElementById("single-condition-view");
+    const allConditionsView = document.getElementById("all-conditions-view");
+    const emptyState = document.getElementById("empty-state");
+    const btnResetSearch = document.getElementById("btn-reset-search");
+    const btnToggleViewmode = document.getElementById("btn-toggle-viewmode");
+    const viewmodeText = document.getElementById("viewmode-text");
+    const btnCopySbar = document.getElementById("btn-copy-sbar");
+    const stickyAnchorsBar = document.getElementById("sticky-anchors-bar");
+
+    // Breadcrumbs & Header
+    const canvasCategoryBreadcrumb = document.getElementById("canvas-category-breadcrumb");
+    const canvasTitleBreadcrumb = document.getElementById("canvas-title-breadcrumb");
+
+    // Mobile Elements
+    const appSidebar = document.getElementById("app-sidebar");
+    const mobileBackdrop = document.getElementById("mobile-backdrop");
+    const btnMobileMenu = document.getElementById("btn-mobile-menu");
+    const btnCloseSidebar = document.getElementById("btn-close-sidebar");
+    const btnMobilePicker = document.getElementById("btn-mobile-picker");
+    const btnMobileSearch = document.getElementById("btn-mobile-search");
+    const mobileConditionTitle = document.getElementById("mobile-condition-title");
+    const mobileConditionIcon = document.getElementById("mobile-condition-icon");
+    const btnBottomMenu = document.getElementById("btn-bottom-menu");
+    const btnBottomAlvarado = document.getElementById("btn-bottom-alvarado");
+    const btnBottomSbar = document.getElementById("btn-bottom-sbar");
+
+    // Alvarado Modal
+    const modalAlvarado = document.getElementById("modal-alvarado");
+    const btnAlvaradoTrigger = document.getElementById("btn-alvarado-trigger");
+    const btnCloseAlvarado = document.getElementById("btn-close-alvarado");
+    const alvaradoCheckboxes = document.querySelectorAll(".alvarado-check");
+    const alvaradoTotalEl = document.getElementById("alvarado-total");
+    const alvaradoInterpretationEl = document.getElementById("alvarado-interpretation");
+
+    // Theme toggles
+    const btnSidebarTheme = document.getElementById("btn-sidebar-theme");
+    const btnMobileTheme = document.getElementById("btn-mobile-theme");
+
+    /**
+     * Theme Initialization
+     */
+    function initTheme() {
+      const savedTheme = localStorage.getItem("surg_cds_theme");
+      if (savedTheme === "light") {
+        document.documentElement.classList.remove("dark");
+      } else {
+        document.documentElement.classList.add("dark");
+      }
+    }
+
+    function toggleTheme() {
+      const isDark = document.documentElement.classList.toggle("dark");
+      localStorage.setItem("surg_cds_theme", isDark ? "dark" : "light");
+    }
+
+    if (btnSidebarTheme) btnSidebarTheme.addEventListener("click", toggleTheme);
+    if (btnMobileTheme) btnMobileTheme.addEventListener("click", toggleTheme);
+
+    /**
+     * Mobile Drawer Handlers
+     */
+    function openMobileDrawer() {
+      appSidebar.classList.remove("-translate-x-full");
+      mobileBackdrop.classList.remove("hidden");
+      document.body.classList.add("overflow-hidden", "lg:overflow-auto");
+    }
+
+    function closeMobileDrawer() {
+      appSidebar.classList.add("-translate-x-full");
+      mobileBackdrop.classList.add("hidden");
+      document.body.classList.remove("overflow-hidden", "lg:overflow-auto");
+    }
+
+    if (btnMobileMenu) btnMobileMenu.addEventListener("click", openMobileDrawer);
+    if (btnMobilePicker) btnMobilePicker.addEventListener("click", openMobileDrawer);
+    if (btnBottomMenu) btnBottomMenu.addEventListener("click", openMobileDrawer);
+    if (btnCloseSidebar) btnCloseSidebar.addEventListener("click", closeMobileDrawer);
+    if (mobileBackdrop) mobileBackdrop.addEventListener("click", closeMobileDrawer);
+
+    if (btnMobileSearch) {
+      btnMobileSearch.addEventListener("click", () => {
+        openMobileDrawer();
+        setTimeout(() => sidebarSearch.focus(), 150);
+      });
+    }
+
+    /**
+     * Render Structured Diagnostic Lab Table
+     */
+    function renderLabTable(labs) {
+      return `
+        <div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr class="bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-300 font-semibold border-b border-slate-200 dark:border-slate-800">
+                <th class="py-3 px-4 w-1/4">Key Diagnostic Test</th>
+                <th class="py-3 px-4 w-1/4">Standard Reference / Normal</th>
+                <th class="py-3 px-4 w-1/2">Expected Pathological Finding in Disease</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 dark:divide-slate-800/80 bg-white dark:bg-slate-900/40">
+              ${labs.map(lab => `
+                <tr class="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors">
+                  <td class="py-3 px-4 font-semibold text-slate-900 dark:text-slate-100">
+                    ${lab.test}
+                  </td>
+                  <td class="py-3 px-4 font-mono text-[11px] text-slate-600 dark:text-slate-300">
+                    <span class="inline-block px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                      ${lab.normalRange}
+                    </span>
+                  </td>
+                  <td class="py-3 px-4">
+                    <div class="font-medium text-blue-700 dark:text-blue-400">
+                      ${lab.pathological}
+                    </div>
+                    <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
+                      ${lab.significance}
+                    </div>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    /**
+     * Render AMBOSS-style Modern Flowchart (Clear, Spacious CSS Cards)
+     */
+    function renderFlowchart(algo) {
+      return `
+        <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/40 p-4 sm:p-6 space-y-6">
+          <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+            <div class="flex items-center gap-2">
+              <span class="w-6 h-6 rounded bg-blue-600 text-white flex items-center justify-center text-xs font-bold">
+                🔀
+              </span>
+              <h4 class="text-sm font-bold text-slate-900 dark:text-white">
+                Decision Flowchart (AMBOSS-Style Stepwise Architecture)
+              </h4>
+            </div>
+            <span class="text-[11px] text-slate-400 font-mono hidden sm:inline">Dual-Triage Protocol</span>
+          </div>
+
+          <!-- Step 1: Triage Box -->
+          <div class="max-w-2xl mx-auto text-center">
+            <div class="p-3.5 rounded-xl border border-blue-200 dark:border-blue-900/60 bg-blue-50/60 dark:bg-blue-950/30 text-slate-800 dark:text-slate-200 shadow-2xs">
+              <span class="inline-block px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider rounded bg-blue-600 text-white mb-1.5">
+                Step 1: Rapid Hemodynamic Triage
+              </span>
+              <p class="text-xs font-semibold leading-relaxed">${algo.step1Triage}</p>
+            </div>
+            <!-- Down arrow visual -->
+            <div class="flex justify-center my-1.5 text-slate-400">
+              <svg class="w-5 h-5 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/>
+              </svg>
+            </div>
+          </div>
+
+          <!-- Dual Divergence: Unstable vs Stable -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+            
+            <!-- BRANCH 1: UNSTABLE -->
+            <div class="rounded-xl border border-rose-200 dark:border-rose-900/60 bg-white dark:bg-slate-900 p-4 sm:p-5 flex flex-col justify-between shadow-xs">
+              <div>
+                <div class="flex items-center justify-between pb-2.5 mb-3 border-b border-rose-100 dark:border-rose-900/40">
+                  <span class="inline-flex items-center gap-1.5 text-xs font-black text-rose-600 dark:text-rose-400 uppercase tracking-tight">
+                    <span class="w-2.5 h-2.5 rounded-full bg-rose-600 animate-ping"></span>
+                    ${algo.unstable.title}
+                  </span>
+                  <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300">
+                    Emergent
+                  </span>
+                </div>
+
+                <div class="space-y-3 text-xs">
+                  <div class="p-3 rounded-lg bg-rose-50/50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/40">
+                    <div class="text-[11px] font-bold text-rose-800 dark:text-rose-300 mb-1">
+                      Step 2: Immediate Aggressive Resuscitation
+                    </div>
+                    <p class="text-slate-700 dark:text-slate-300 leading-relaxed">${algo.unstable.step2Resus}</p>
+                  </div>
+
+                  <div class="p-3 rounded-lg bg-rose-50/50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/40">
+                    <div class="text-[11px] font-bold text-rose-800 dark:text-rose-300 mb-1">
+                      Step 3: Definitive Emergent Surgical Action
+                    </div>
+                    <p class="text-slate-700 dark:text-slate-300 leading-relaxed">${algo.unstable.step3Action}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-4 pt-3 border-t border-rose-100 dark:border-rose-900/40 text-center">
+                <span class="text-[11px] font-bold text-rose-700 dark:text-rose-300">
+                  Target: Operating Theater / Damage Control Laparotomy
+                </span>
+              </div>
+            </div>
+
+            <!-- BRANCH 2: STABLE -->
+            <div class="rounded-xl border border-emerald-200 dark:border-emerald-900/60 bg-white dark:bg-slate-900 p-4 sm:p-5 flex flex-col justify-between shadow-xs">
+              <div>
+                <div class="flex items-center justify-between pb-2.5 mb-3 border-b border-emerald-100 dark:border-emerald-900/40">
+                  <span class="inline-flex items-center gap-1.5 text-xs font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-tight">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                    ${algo.stable.title}
+                  </span>
+                  <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                    Stable
+                  </span>
+                </div>
+
+                <div class="space-y-3 text-xs">
+                  <div class="p-3 rounded-lg bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/40">
+                    <div class="text-[11px] font-bold text-emerald-800 dark:text-emerald-300 mb-1">
+                      Step 2: Definitive Imaging & Diagnostics
+                    </div>
+                    <p class="text-slate-700 dark:text-slate-300 leading-relaxed">${algo.stable.step2Resus}</p>
+                  </div>
+
+                  <div class="p-3 rounded-lg bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/40">
+                    <div class="text-[11px] font-bold text-emerald-800 dark:text-emerald-300 mb-1">
+                      Step 3: Prioritized Surgical Intervention
+                    </div>
+                    <p class="text-slate-700 dark:text-slate-300 leading-relaxed">${algo.stable.step3Action}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-4 pt-3 border-t border-emerald-100 dark:border-emerald-900/40 text-center">
+                <span class="text-[11px] font-bold text-emerald-700 dark:text-emerald-300">
+                  Target: Contrast CT / Scheduled Early Intervention
+                </span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      `;
+    }
+
+    /**
+     * Render the Full Wide Notion-Style Document for a Single Condition
+     */
+    function renderConditionDocument(c) {
+      return `
+        <!-- HEADER SECTION -->
+        <section id="sec-overview" class="space-y-4">
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+              ${c.category}
+            </span>
+            <span class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300">
+              ${c.badge}
+            </span>
+          </div>
+
+          <div class="flex items-start justify-between gap-4">
+            <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
+              <span>${c.icon}</span>
+              <span>${c.title}</span>
+            </h1>
+          </div>
+
+          <!-- Highlight Notice Callout (Notion Style) -->
+          <div class="notion-callout notion-callout-amber p-4 rounded-xl bg-amber-50/80 dark:bg-amber-950/20 border border-amber-200/80 dark:border-amber-900/40 text-xs text-amber-950 dark:text-amber-200 flex items-start gap-3">
+            <span class="text-amber-600 dark:text-amber-400 font-bold shrink-0 text-sm">💡</span>
+            <div class="leading-relaxed">
+              <strong class="font-bold text-amber-900 dark:text-amber-100">Clinical Pearl:</strong> ${c.highlightNotice}
+            </div>
+          </div>
+
+          <!-- Clinical Presentation Box -->
+          <div class="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30">
+            <div class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Presenting Complaint & History</div>
+            <p class="text-sm text-slate-800 dark:text-slate-200 leading-relaxed font-normal">${c.presentingComplaint}</p>
+          </div>
+        </section>
+
+        <!-- SECTION A: Immediate Bedside Resuscitation -->
+        <section id="sec-resuscitation" class="space-y-3 pt-4 border-t border-slate-100 dark:border-slate-800/80">
+          <div class="flex items-center gap-2">
+            <span class="w-6 h-6 rounded-md bg-blue-600 text-white flex items-center justify-center text-xs font-bold">⚡</span>
+            <h2 class="text-base font-bold text-slate-900 dark:text-white tracking-tight">
+              Immediate Bedside Resuscitation
+            </h2>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
+            <div class="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs">
+              <span class="text-[11px] font-bold text-rose-600 dark:text-rose-400 block mb-1 uppercase tracking-wider">
+                NPO & Bowel Rest
+              </span>
+              <p class="text-slate-700 dark:text-slate-300 leading-relaxed">${c.bedsideResuscitation.npo}</p>
+            </div>
+
+            <div class="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs">
+              <span class="text-[11px] font-bold text-blue-600 dark:text-blue-400 block mb-1 uppercase tracking-wider">
+                IV Fluids & Targets
+              </span>
+              <p class="text-slate-700 dark:text-slate-300 leading-relaxed">${c.bedsideResuscitation.fluids}</p>
+            </div>
+
+            <div class="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs">
+              <span class="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 block mb-1 uppercase tracking-wider">
+                Analgesia & Antiemetics
+              </span>
+              <p class="text-slate-700 dark:text-slate-300 leading-relaxed">${c.bedsideResuscitation.analgesia}</p>
+            </div>
+
+            <div class="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs">
+              <span class="text-[11px] font-bold text-amber-600 dark:text-amber-400 block mb-1 uppercase tracking-wider">
+                Tubes, Lines & Monitoring
+              </span>
+              <p class="text-slate-700 dark:text-slate-300 leading-relaxed">${c.bedsideResuscitation.tubes}</p>
+            </div>
+
+            <div class="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs sm:col-span-2 lg:col-span-2">
+              <span class="text-[11px] font-bold text-purple-600 dark:text-purple-400 block mb-1 uppercase tracking-wider">
+                Empiric Antibiotics & Coverage
+              </span>
+              <p class="text-slate-700 dark:text-slate-300 leading-relaxed">${c.bedsideResuscitation.antibiotics}</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- SECTION B: Essential Diagnostics & Labs (Structured Table) -->
+        <section id="sec-labs" class="space-y-3 pt-4 border-t border-slate-100 dark:border-slate-800/80">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="w-6 h-6 rounded-md bg-blue-600 text-white flex items-center justify-center text-xs font-bold">🧪</span>
+              <h2 class="text-base font-bold text-slate-900 dark:text-white tracking-tight">
+                Essential Diagnostics & Labs (Normal vs. Pathological in Disease)
+              </h2>
+            </div>
+            <span class="text-[11px] text-slate-400 font-mono hidden sm:inline">${c.diagnosticsAndLabs.length} Key Parameters</span>
+          </div>
+
+          ${renderLabTable(c.diagnosticsAndLabs)}
+        </section>
+
+        <!-- SECTION C: First-line Imaging & Bedside Ultrasound -->
+        <section id="sec-imaging" class="space-y-3 pt-4 border-t border-slate-100 dark:border-slate-800/80">
+          <div class="flex items-center gap-2">
+            <span class="w-6 h-6 rounded-md bg-blue-600 text-white flex items-center justify-center text-xs font-bold">📷</span>
+            <h2 class="text-base font-bold text-slate-900 dark:text-white tracking-tight">
+              First-line Imaging & Bedside Ultrasound (POCUS) Findings
+            </h2>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+            <div class="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs">
+              <div class="font-bold text-slate-900 dark:text-white mb-2 flex items-center gap-1.5 text-xs">
+                <span class="text-blue-500 font-bold">US</span>
+                <span>${c.imaging.firstLine}</span>
+              </div>
+              <ul class="space-y-2 list-disc list-inside text-slate-700 dark:text-slate-300">
+                ${c.imaging.ultrasoundFindings.map(f => `<li class="leading-relaxed">${f}</li>`).join('')}
+              </ul>
+            </div>
+
+            <div class="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs">
+              <div class="font-bold text-slate-900 dark:text-white mb-2 flex items-center gap-1.5 text-xs">
+                <span class="text-purple-500 font-bold">CT</span>
+                <span>Cross-Sectional & Secondary Imaging</span>
+              </div>
+              <p class="text-slate-700 dark:text-slate-300 leading-relaxed">${c.imaging.crossSectional}</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- SECTION D: Surgical Triggers & Red Flags -->
+        <section id="sec-redflags" class="space-y-3 pt-4 border-t border-slate-100 dark:border-slate-800/80">
+          <div class="flex items-center gap-2">
+            <span class="w-6 h-6 rounded-md bg-rose-600 text-white flex items-center justify-center text-xs font-bold">🚨</span>
+            <h2 class="text-base font-bold text-rose-600 dark:text-rose-400 tracking-tight">
+              Surgical Triggers & Red Flags (Urgent Theater / Laparotomy Indications)
+            </h2>
+          </div>
+
+          <div class="p-4 rounded-xl border border-rose-200 dark:border-rose-900/50 bg-rose-50/60 dark:bg-rose-950/20">
+            <ul class="space-y-2.5 text-xs text-rose-950 dark:text-rose-200">
+              ${c.surgicalTriggers.map(trigger => `
+                <li class="flex items-start gap-2.5 leading-relaxed">
+                  <span class="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0 mt-1.5"></span>
+                  <span><strong>TRIGGER:</strong> ${trigger}</span>
+                </li>
+              `).join('')}
+            </ul>
+          </div>
+        </section>
+
+        <!-- SECTION E: Decision Algorithm (AMBOSS-Style Flowchart) -->
+        <section id="sec-algorithm" class="space-y-3 pt-4 border-t border-slate-100 dark:border-slate-800/80">
+          ${renderFlowchart(c.algorithm)}
+        </section>
+      `;
+    }
+
+    /**
+     * Render the Sidebar List of Conditions
+     */
+    function renderSidebar() {
+      const q = searchQuery.toLowerCase().trim();
+
+      const filtered = EMERGENCY_CONDITIONS.filter(c => {
+        const matchCategory = (selectedCategory === "All") || (c.category === selectedCategory);
+        if (!matchCategory) return false;
+
+        if (!q) return true;
+        return c.title.toLowerCase().includes(q) ||
+               c.category.toLowerCase().includes(q) ||
+               c.presentingComplaint.toLowerCase().includes(q) ||
+               c.diagnosticsAndLabs.some(l => l.test.toLowerCase().includes(q) || l.pathological.toLowerCase().includes(q));
+      });
+
+      if (filtered.length === 0) {
+        sidebarNav.innerHTML = `
+          <div class="p-4 text-center text-xs text-slate-400">
+            No matching conditions found.
+          </div>
+        `;
+        return;
+      }
+
+      sidebarNav.innerHTML = filtered.map(c => {
+        const isActive = (c.id === activeConditionId);
+        return `
+          <button
+            data-condition-id="${c.id}"
+            class="nav-condition-btn w-full text-left p-2.5 rounded-xl transition-all flex items-center justify-between group cursor-pointer ${
+              isActive
+                ? 'bg-blue-600 text-white font-semibold shadow-xs'
+                : 'hover:bg-slate-200/70 dark:hover:bg-slate-800/70 text-slate-700 dark:text-slate-300'
+            }"
+          >
+            <div class="flex items-center gap-2.5 truncate">
+              <span class="text-sm shrink-0">${c.icon}</span>
+              <div class="truncate">
+                <div class="text-xs truncate ${isActive ? 'text-white font-bold' : 'text-slate-900 dark:text-slate-100'}">
+                  ${c.title}
+                </div>
+                <div class="text-[10px] truncate ${isActive ? 'text-blue-100' : 'text-slate-400'}">
+                  ${c.category}
+                </div>
+              </div>
+            </div>
+            <span class="text-[10px] px-1.5 py-0.5 rounded font-mono ${
+              isActive
+                ? 'bg-blue-700 text-blue-100'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+            }">
+              ${c.badge.split(' ')[0]}
+            </span>
+          </button>
+        `;
+      }).join('');
+
+      // Add click handlers
+      document.querySelectorAll(".nav-condition-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const id = btn.getAttribute("data-condition-id");
+          selectCondition(id);
+          closeMobileDrawer();
+        });
+      });
+    }
+
+    /**
+     * Switch Active Condition
+     */
+    function selectCondition(id) {
+      activeConditionId = id;
+      isViewAllMode = false;
+      renderSidebar();
+      renderActiveCanvas();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    /**
+     * Render the Canvas (Active condition or all)
+     */
+    function renderActiveCanvas() {
+      const condition = EMERGENCY_CONDITIONS.find(c => c.id === activeConditionId) || EMERGENCY_CONDITIONS[0];
+
+      if (isViewAllMode) {
+        // Multi-condition view
+        singleConditionView.classList.add("hidden");
+        allConditionsView.classList.remove("hidden");
+        emptyState.classList.add("hidden");
+        stickyAnchorsBar.classList.add("hidden");
+
+        viewmodeText.textContent = "Single Doc View";
+        canvasCategoryBreadcrumb.textContent = "All Categories";
+        canvasTitleBreadcrumb.textContent = "7 Emergencies Overview";
+
+        allConditionsView.innerHTML = EMERGENCY_CONDITIONS.map(c => `
+          <article class="p-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-6">
+            ${renderConditionDocument(c)}
+          </article>
+        `).join('');
+      } else {
+        // Single focused Notion-like document view
+        allConditionsView.classList.add("hidden");
+        singleConditionView.classList.remove("hidden");
+        emptyState.classList.add("hidden");
+        stickyAnchorsBar.classList.remove("hidden");
+
+        viewmodeText.textContent = "View All (7)";
+        canvasCategoryBreadcrumb.textContent = condition.category;
+        canvasTitleBreadcrumb.textContent = condition.title;
+
+        // Mobile header update
+        mobileConditionTitle.textContent = condition.title;
+        mobileConditionIcon.textContent = condition.icon;
+
+        singleConditionView.innerHTML = renderConditionDocument(condition);
+      }
+    }
+
+    /**
+     * SBAR Copy Handler
+     */
+    function copySbar() {
+      const condition = EMERGENCY_CONDITIONS.find(c => c.id === activeConditionId) || EMERGENCY_CONDITIONS[0];
+      const sbarText = `[SBAR SURGICAL HANDOVER - ${condition.title.toUpperCase()}]
+S (Situation): ${condition.title} (${condition.category}).
+- Presentation: ${condition.presentingComplaint}
+B (Background):
+- Clinical Trigger: ${condition.highlightNotice}
+A (Assessment / Diagnostics):
+- Key Labs: ${condition.diagnosticsAndLabs.map(l => `${l.test}: ${l.pathological}`).join('; ')}
+- Bedside US: ${condition.imaging.firstLine}
+- Red Flag: ${condition.surgicalTriggers[0]}
+R (Recommendation):
+- Immediate Resuscitation: ${condition.bedsideResuscitation.fluids} (${condition.bedsideResuscitation.npo})
+- Action: ${condition.algorithm.stable.title}`;
+
+      navigator.clipboard.writeText(sbarText).then(() => {
+        const originalContent = btnCopySbar.innerHTML;
+        btnCopySbar.innerHTML = `
+          <svg class="w-3.5 h-3.5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+          </svg>
+          <span class="text-emerald-600 dark:text-emerald-400 font-bold">Copied!</span>
+        `;
+        setTimeout(() => {
+          btnCopySbar.innerHTML = originalContent;
+        }, 2000);
+      });
+    }
+
+    if (btnCopySbar) btnCopySbar.addEventListener("click", copySbar);
+    if (btnBottomSbar) btnBottomSbar.addEventListener("click", copySbar);
+
+    /**
+     * Toggle View Mode (Single Notion Doc vs All Cards)
+     */
+    if (btnToggleViewmode) {
+      btnToggleViewmode.addEventListener("click", () => {
+        isViewAllMode = !isViewAllMode;
+        renderActiveCanvas();
+      });
+    }
+
+    /**
+     * Category Chips in Sidebar
+     */
+    if (sidebarCategories) {
+      sidebarCategories.addEventListener("click", (e) => {
+        const target = e.target.closest(".cat-chip");
+        if (!target) return;
+
+        document.querySelectorAll(".cat-chip").forEach(btn => {
+          btn.classList.remove("bg-blue-600", "text-white");
+          btn.classList.add("bg-slate-200", "dark:bg-slate-800", "text-slate-600", "dark:text-slate-300");
+        });
+
+        target.classList.remove("bg-slate-200", "dark:bg-slate-800", "text-slate-600", "dark:text-slate-300");
+        target.classList.add("bg-blue-600", "text-white");
+
+        selectedCategory = target.getAttribute("data-cat");
+        renderSidebar();
+      });
+    }
+
+    /**
+     * Search Input Handling
+     */
+    if (sidebarSearch) {
+      sidebarSearch.addEventListener("input", (e) => {
+        searchQuery = e.target.value;
+        if (searchQuery.trim().length > 0) {
+          clearSidebarSearchBtn.classList.remove("hidden");
+        } else {
+          clearSidebarSearchBtn.classList.add("hidden");
+        }
+        renderSidebar();
+      });
+    }
+
+    if (clearSidebarSearchBtn) {
+      clearSidebarSearchBtn.addEventListener("click", () => {
+        sidebarSearch.value = "";
+        searchQuery = "";
+        clearSidebarSearchBtn.classList.add("hidden");
+        renderSidebar();
+        sidebarSearch.focus();
+      });
+    }
+
+    if (btnResetSearch) {
+      btnResetSearch.addEventListener("click", () => {
+        sidebarSearch.value = "";
+        searchQuery = "";
+        selectedCategory = "All";
+        renderSidebar();
+      });
+    }
+
+    /**
+     * Alvarado Calculator Modal
+     */
+    function calculateAlvarado() {
+      let score = 0;
+      alvaradoCheckboxes.forEach(cb => {
+        if (cb.checked) {
+          score += parseInt(cb.getAttribute("data-points"), 10);
+        }
+      });
+
+      alvaradoTotalEl.textContent = `${score} / 10`;
+
+      if (score <= 4) {
+        alvaradoInterpretationEl.innerHTML = `
+          <span class="inline-block px-2 py-0.5 rounded text-xs font-bold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+            Low Probability (≤ 4)
+          </span>
+          <p class="text-[11px] text-slate-500 mt-0.5">Appendicitis unlikely; evaluate alternate diagnoses.</p>
+        `;
+      } else if (score <= 6) {
+        alvaradoInterpretationEl.innerHTML = `
+          <span class="inline-block px-2 py-0.5 rounded text-xs font-bold bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-300">
+            Intermediate Risk (5–6)
+          </span>
+          <p class="text-[11px] text-amber-600 dark:text-amber-400 mt-0.5">Admit for observation and serial US/CT imaging.</p>
+        `;
+      } else {
+        alvaradoInterpretationEl.innerHTML = `
+          <span class="inline-block px-2 py-0.5 rounded text-xs font-bold bg-rose-100 text-rose-800 dark:bg-rose-900/60 dark:text-rose-300">
+            High Probability (≥ 7)
+          </span>
+          <p class="text-[11px] text-rose-600 dark:text-rose-400 mt-0.5">Urgent surgical consultation for appendectomy.</p>
+        `;
+      }
+    }
+
+    alvaradoCheckboxes.forEach(cb => {
+      cb.addEventListener("change", calculateAlvarado);
+    });
+
+    if (btnAlvaradoTrigger) {
+      btnAlvaradoTrigger.addEventListener("click", () => {
+        modalAlvarado.classList.remove("hidden");
+        closeMobileDrawer();
+      });
+    }
+
+    if (btnBottomAlvarado) {
+      btnBottomAlvarado.addEventListener("click", () => {
+        modalAlvarado.classList.remove("hidden");
+      });
+    }
+
+    if (btnCloseAlvarado) {
+      btnCloseAlvarado.addEventListener("click", () => {
+        modalAlvarado.classList.add("hidden");
+      });
+    }
+
+    modalAlvarado.addEventListener("click", (e) => {
+      if (e.target === modalAlvarado) {
+        modalAlvarado.classList.add("hidden");
+      }
+    });
+
+    // Keyboard Shortcuts (Esc closes modal, / focuses search)
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "/" && document.activeElement !== sidebarSearch) {
+        e.preventDefault();
+        openMobileDrawer();
+        setTimeout(() => sidebarSearch.focus(), 150);
+      } else if (e.key === "Escape") {
+        modalAlvarado.classList.add("hidden");
+        closeMobileDrawer();
+      }
+    });
+
+    /**
+     * INITIALIZATION
+     */
+    initTheme();
+    renderSidebar();
+    renderActiveCanvas();
+  </script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+{
+  "name": "Surgical & GIT Emergency Decision Support",
+  "description": "Interactive clinical decision-support tool for GIT and urological surgical emergencies with diagnostic lab tables, bedside resuscitation, and AMBOSS-style triage algorithms.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
